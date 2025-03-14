@@ -1,78 +1,135 @@
+import os
 import re
+import random
+
+# Constants
+INPUT_FOLDER = "input"
+OUTPUT_FOLDER = "output"
+
 
 def split_document(doc, target_slides):
     """
-    Split a markdown document into sections based on its headings and bullet points,
-    and organize them into slides to match the target number of slides.
+    Splits a markdown document into sections while ensuring the number of sections matches the target slides.
 
     Parameters:
-    doc (str): The markdown document as input.
-    target_slides (int): The desired number of slides.
+    - doc (str): The markdown document as input.
+    - target_slides (int): The desired number of slides.
 
     Returns:
-    list: A list of text sections (as strings) that fit the target slides.
+    - list: A list of slide contents.
     """
-    # Normalize line breaks and remove excess spaces
+
+    # Normalize whitespace
     doc = re.sub(r'\n\s*\n', '\n\n', doc.strip())
 
-    # Split document into sections based on headers
+    # Try splitting by headers first (markdown `#` or `** bold **`)
     sections = re.split(r'\n(?=\*\*|\#)', doc)
     sections = [s.strip() for s in sections if s.strip()]
 
-    # If there are fewer sections than the target slides, adjust accordingly
+    # If no headers were found, split by paragraphs instead
+    if len(sections) < 2:
+        sections = re.split(r'\n\n+', doc)  # Split by double newlines
+
+    # Ensure sections exist
+    if not sections:
+        return ["Slide 1: " + doc]  # Treat entire document as one slide
+
+    # Adjust the number of sections to match the target slides
     while len(sections) < target_slides:
+        # Split larger sections into smaller ones
         for i in range(len(sections)):
-            if len(sections) < target_slides:
+            if len(sections) < target_slides and len(sections[i]) > 50:  # Avoid splitting tiny sections
                 midpoint = len(sections[i]) // 2
-                split_index = sections[i].find(" ", midpoint)  # Find a reasonable split point
+                split_index = sections[i].find(" ", midpoint)
                 if split_index != -1:
                     sections.insert(i + 1, sections[i][split_index:].strip())
                     sections[i] = sections[i][:split_index].strip()
 
-    # If we have more sections than slides, merge sections
     while len(sections) > target_slides:
-        for i in range(len(sections) - 1):
-            if len(sections) > target_slides:
-                sections[i] += "\n\n" + sections.pop(i + 1)
+        # Merge shorter sections, ensuring index safety
+        i = 0
+        while len(sections) > target_slides and i < len(sections) - 1:
+            sections[i] += "\n\n" + sections[i + 1]
+            del sections[i + 1]
+            i += 1  # Move forward to avoid skipping sections
 
-    # Format the output into slides
+    # Format slides
     slides = [f"Slide {i+1}: {sections[i]}" for i in range(len(sections))]
 
     return slides
 
 
-# Example Document 1 (doc1)
-doc1 = """
-# Generative AI is a transformative technology
+def process_document(filename, target_slides):
+    """
+    Reads a markdown file, splits it into slides AFTER user input, and saves the output.
 
-The last year has seen a spectacular acceleration in generative AI: systems able to generate text / image conditioned on text and images. Those systems can help humans:
+    Parameters:
+    - filename (str): The markdown file name.
+    - target_slides (int): Number of slides to generate.
 
-- produce superb creative content (text, code, graphics)
-- read, process and summarise unstructured content streams thousands of times faster than humans
-- interact with the world (exposed through natural or application interfaces) to execute workflows faster than ever before.
+    Returns:
+    - None
+    """
+    filepath = os.path.join(INPUT_FOLDER, filename)
+    if not os.path.exists(filepath):
+        print(f"⚠️ Error: File '{filename}' not found.")
+        return
 
-The power of generative AI was suddenly demonstrated to the general audience with the release of ChatGPT; this kind of product has been in the making by only a few small teams across the world — the few researchers of these teams are now the limiting factor to create new economic actors in the field.
+    with open(filepath, "r", encoding="utf-8") as file:
+        content = file.read()
 
-Generative AI is about to boost productivity in all sectors and create a new industry (10B market size as of 2022, projected to be 110B by 2030, with an estimated growth rate of 35% per year), by seamlessly enhancing the human mind with machine capabilities.
+    print(f"📖 Processing {filename} ({target_slides} slides)...")
 
-# An oligopoly is shaping up
+    # **Perform splitting only after user provides a target slide number**
+    slides = split_document(content, target_slides)
 
-Generative AI technologies are based on years of research made in many parts of the industry and academia. The final breakthroughs, i.e. scaling training to internet-wide data and aligning models with human feedback, finally made these technologies usable by many; these breakthroughs were made by very few actors, the largest of which (OpenAI) appears to have hegemonic intention over the market.
+    # Save slides to output directory
+    os.makedirs(OUTPUT_FOLDER, exist_ok=True)
+    output_file = os.path.join(OUTPUT_FOLDER, f"{os.path.splitext(filename)[0]}_slides.txt")
+    with open(output_file, "w", encoding="utf-8") as out:
+        out.write("\n\n--------------------------------------------------\n\n".join(slides))
 
-These very few actors train generative models and hold them as assets; they serve it to thousands of third-party productivity enhancing products, in addition to also serving first-party chatbot-like products.
+    print(f"✅ Processed {filename} → {len(slides)} slides saved to {output_file}.\n")
 
-## We believe that most of the value in the emerging generative AI market will be located in the hard-to-make technology, i.e. the generative models themselves.
 
-Those models need to be trained on thousands of very powerful machines, on trillions of words coming from high-quality sources, which is one factor that sets a high barrier to entry. The second important barrier lies in the difficulty to assemble an experienced team, something that mistral.ai will be in a unique position of doing.
-"""
+def main():
+    """
+    Main function to process markdown files from input folder.
+    User can specify slide count AFTER loading the file.
+    """
+    if not os.path.exists(INPUT_FOLDER):
+        print(f"⚠️ Error: Input folder '{INPUT_FOLDER}' not found.")
+        return
 
-# Set target number of slides
-target_slides = 3
+    files_to_process = [f for f in os.listdir(INPUT_FOLDER) if f.endswith(".md")]
 
-# Call the function to split the document into the required number of slides
-result = split_document(doc1, target_slides)
+    if not files_to_process:
+        print("⚠️ No markdown files found in the input folder.")
+        return
 
-# Print the result
-for slide in result:
-    print(slide)
-    print("\n" + "-"*50 + "\n")  # Just to separate slides visually
+    for filename in files_to_process:
+        while True:
+            try:
+                # Prompt user for number of slides, allowing Enter for random choice
+                user_input = input(f"Slides for {filename} (3-50, press Enter for random): ").strip()
+
+                if user_input == "":
+                    target_slides = random.randint(3, 7)  # Randomize between 3-7
+                    print(f"🎲 Randomly chosen {target_slides} slides for {filename}.")
+                else:
+                    target_slides = int(user_input)
+                    if target_slides < 3 or target_slides > 50:
+                        raise ValueError
+
+                break  # Exit loop if input is valid
+            except ValueError:
+                print("⚠️ Invalid input. Please enter a number between 3 and 50.")
+
+        # **Perform document splitting AFTER user selects slide count**
+        process_document(filename, target_slides)
+
+    print("🚀 Done!")
+
+
+if __name__ == "__main__":
+    main()
