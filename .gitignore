@@ -1,0 +1,33 @@
+# Ignore the output folder where processed slides are saved
+output/
+
+# Ignore Python compiled files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.egg-info/
+*.egg
+
+# Ignore virtual environments
+venv/
+env/
+.venv/
+
+# Ignore log and cache files
+*.log
+*.cache
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Ignore macOS/iOS system files
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon?
+._*
+
+# Ignore macOS/iOS metadata files
+.Spotlight-V100
+.Trashes
+Thumbs.db
