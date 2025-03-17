@@ -111,6 +111,7 @@ python3 gamma.py
 - Follow the prompts to set the **number of slides per file**.
 
 if you have the zip file of the folder, just unzip the file, and follow step 3: run the program
+
 ---
 
 ## 📂 File Structure
