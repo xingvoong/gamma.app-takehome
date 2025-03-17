@@ -126,4 +126,4 @@ python3 gamma.py
 ---
 
 
-🎉 **Ready to turn long documents into concise, structured slides?** Run the script and generate your own slides now! 🚀
+🎉 **Ready to turn long documents into concise, structured slides?** Run the script and generate your own slides now! Please reach out to me at xingvoong@gmail.com if you have any trouble running the code🚀
